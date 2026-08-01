@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: backend
+
+  template:
+    metadata:
+      labels:
+        app: backend
+
+    spec:
+      containers:
+        - name: backend
+
+          image: 943938400079.dkr.ecr.ap-south-1.amazonaws.com/mern-backend:v2
+
+          ports:
+            - containerPort: 3500
+
+          env:
+            - name: PORT
+              value: "3500"
+
+            - name: MONGO_CONN_STR
+              value: "mongodb://mongodb-service:27017/taskdb"
+
+            - name: USE_DB_AUTH
+              value: "false"
