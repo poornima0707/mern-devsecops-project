@@ -19,7 +19,7 @@ jobs:
 
     # Node Backend Dependency Check
     - name: Install Backend Dependencies
-      working-directory: backend
+      working-directory: Application-Code/backend
       run: npm install
 
 
@@ -54,7 +54,7 @@ jobs:
     # Build Backend Image
     - name: Build Backend Image
       run: |
-        docker build -t mern-backend ./backend
+        docker build -t mern-backend ./Application-Code/backend
 
 
     # Build Frontend Image
