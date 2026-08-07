@@ -68,6 +68,11 @@ jobs:
       run: |
         docker build -t mern-frontend ./Application-Code/frontend
 
+    - name: Verify ECR Registry
+      run: |
+        echo "Backend registry:"
+        echo "${{ secrets.ECR_BACKEND_URL }}" | cut -d'/' -f1
+
 
     # Push Images to ECR
     - name: Push Images
