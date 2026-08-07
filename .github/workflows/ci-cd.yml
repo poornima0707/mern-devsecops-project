@@ -13,90 +13,119 @@ jobs:
 
     steps:
 
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
 
-    # Node Backend Dependency Check
-    - name: Install Backend Dependencies
-      working-directory: Application-Code/backend
-      run: npm install
+      # Backend Dependency Check
+      - name: Install Backend Dependencies
+        working-directory: Application-Code/backend
+        run: npm install
 
 
-    # Frontend Dependency Check
-    - name: Install Frontend Dependencies
-      working-directory: Application-Code/frontend
-      run: npm install
+      # Frontend Dependency Check
+      - name: Install Frontend Dependencies
+        working-directory: Application-Code/frontend
+        run: npm install
 
 
-    # Trivy File Scan
-    - name: Trivy Security Scan
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: fs
-        scan-ref: .
+      # Trivy Security Scan
+      - name: Trivy Security Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
 
 
-    # Docker Login AWS ECR
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ap-south-1
-    - name: Verify AWS Identity
-      run: |
-        aws sts get-caller-identity
+      # Configure AWS
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
 
 
-    # Login ECR
-    - name: Login to Amazon ECR
-      uses: aws-actions/amazon-ecr-login@v2
-    - name: Verify Docker Login
-      run: |
-        docker info | grep Username || true
+      # Verify AWS
+      - name: Verify AWS Identity
+        run: |
+          aws sts get-caller-identity
 
 
-    # Build Backend Image
-    - name: Build Backend Image
-      run: |
-        docker build -t mern-backend ./Application-Code/backend
+      # Login Docker to ECR
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ap-south-1 | \
+          docker login \
+          --username AWS \
+          --password-stdin 943938400079.dkr.ecr.ap-south-1.amazonaws.com
 
 
-    # Build Frontend Image
-    - name: Build Frontend Image
-      run: |
-        docker build -t mern-frontend ./Application-Code/frontend
-
-    - name: Verify ECR Registry
-      run: |
-        echo "Backend registry:"
-        echo "${{ secrets.ECR_BACKEND_URL }}" | cut -d'/' -f1
+      # Verify ECR Registry
+      - name: Verify ECR Registry
+        run: |
+          echo "Backend Registry:"
+          echo "${{ secrets.ECR_BACKEND_URL }}" | cut -d'/' -f1
 
 
-    # Push Images to ECR
-    - name: Push Images
-      run: |
-
-        docker tag mern-backend:latest \
-        ${{ secrets.ECR_BACKEND_URL }}:latest
-
-        docker tag mern-frontend:latest \
-        ${{ secrets.ECR_FRONTEND_URL }}:latest
+      # Build Backend Image
+      - name: Build Backend Image
+        run: |
+          docker build \
+          -t mern-backend \
+          ./Application-Code/backend
 
 
-        docker push \
-        ${{ secrets.ECR_BACKEND_URL }}:latest
+      # Build Frontend Image
+      - name: Build Frontend Image
+        run: |
+          docker build \
+          -t mern-frontend \
+          ./Application-Code/frontend
 
-        docker push \
-        ${{ secrets.ECR_FRONTEND_URL }}:latest
+
+      # Push Images to ECR
+      - name: Push Images to ECR
+        run: |
+
+          docker tag mern-backend:latest \
+          ${{ secrets.ECR_BACKEND_URL }}:latest
+
+          docker tag mern-frontend:latest \
+          ${{ secrets.ECR_FRONTEND_URL }}:latest
 
 
-    # Kubernetes Deployment Update
-    - name: Update Kubernetes Deployment
-      run: |
-        kubectl set image deployment/backend \
-        backend=${{ secrets.ECR_BACKEND_URL }}:latest
+          docker push \
+          ${{ secrets.ECR_BACKEND_URL }}:latest
 
-        kubectl set image deployment/frontend \
-        frontend=${{ secrets.ECR_FRONTEND_URL }}:latest
+          docker push \
+          ${{ secrets.ECR_FRONTEND_URL }}:latest
+
+
+      # Configure EKS Access
+      - name: Configure kubectl for EKS
+        run: |
+          aws eks update-kubeconfig \
+          --region ap-south-1 \
+          --name mern-eks-cluster
+
+
+      # Deploy Latest Images
+      - name: Update Kubernetes Deployment
+        run: |
+
+          kubectl set image deployment/backend \
+          backend=${{ secrets.ECR_BACKEND_URL }}:latest
+
+
+          kubectl set image deployment/frontend \
+          frontend=${{ secrets.ECR_FRONTEND_URL }}:latest
+
+
+      # Verify Deployment
+      - name: Verify Kubernetes Rollout
+        run: |
+
+          kubectl rollout status deployment/backend
+
+          kubectl rollout status deployment/frontend
