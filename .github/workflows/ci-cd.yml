@@ -25,7 +25,7 @@ jobs:
 
     # Frontend Dependency Check
     - name: Install Frontend Dependencies
-      working-directory: frontend
+      working-directory: Application-Code/frontend
       run: npm install
 
 
@@ -60,7 +60,7 @@ jobs:
     # Build Frontend Image
     - name: Build Frontend Image
       run: |
-        docker build -t mern-frontend ./frontend
+        docker build -t mern-frontend ./Application-Code/frontend
 
 
     # Push Images to ECR
