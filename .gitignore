@@ -12,6 +12,12 @@
 *.tfstate
 *.tfstate.*
 
+# Terraform variables
+*.tfvars
+
+# Terraform working directory
+.terraform/
+
 # VS Code
 .vscode/
 
