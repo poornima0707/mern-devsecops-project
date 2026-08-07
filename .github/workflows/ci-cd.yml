@@ -44,11 +44,17 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ap-south-1
+    - name: Verify AWS Identity
+      run: |
+        aws sts get-caller-identity
 
 
     # Login ECR
     - name: Login to Amazon ECR
       uses: aws-actions/amazon-ecr-login@v2
+    - name: Verify Docker Login
+      run: |
+        docker info | grep Username || true
 
 
     # Build Backend Image
